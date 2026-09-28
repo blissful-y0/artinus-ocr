@@ -1,0 +1,55 @@
+appId: dev.artinus.assignment.ocr
+---
+- launchApp:
+    permissions:
+      camera: deny
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: fixture-capture
+    timeout: 30000
+- tapOn:
+    id: scenario-success
+- tapOn:
+    id: fixture-capture
+- extendedWaitUntil:
+    visible:
+      id: result-text
+    timeout: 10000
+- tapOn:
+    id: result-enlarge-photo
+- assertVisible:
+    id: result-photo-modal
+- takeScreenshot: photo-1x
+- tapOn:
+    id: result-zoom-in
+- takeScreenshot: photo-2x
+- tapOn:
+    id: result-close-photo
+- tapOn:
+    id: result-retake
+- tapOn:
+    id: scenario-empty
+- tapOn:
+    id: fixture-capture
+- extendedWaitUntil:
+    visible:
+      id: result-empty
+    timeout: 10000
+- tapOn:
+    id: result-retake
+- tapOn:
+    id: scenario-quality
+- tapOn:
+    id: fixture-capture
+- extendedWaitUntil:
+    visible:
+      id: result-warnings
+    timeout: 10000
+- tapOn:
+    id: result-retake

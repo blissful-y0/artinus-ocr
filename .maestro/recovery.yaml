@@ -1,0 +1,37 @@
+appId: dev.artinus.assignment.ocr
+---
+- launchApp:
+    permissions:
+      camera: deny
+- extendedWaitUntil:
+    visible:
+      id: fixture-capture
+    timeout: 30000
+- tapOn:
+    id: scenario-error
+- tapOn:
+    id: fixture-capture
+- extendedWaitUntil:
+    visible:
+      id: result-error
+    timeout: 10000
+- tapOn:
+    id: result-retry
+- extendedWaitUntil:
+    visible:
+      id: result-text
+    timeout: 10000
+- tapOn:
+    id: result-retake
+- tapOn:
+    id: scenario-timeout
+- tapOn:
+    id: fixture-capture
+- extendedWaitUntil:
+    visible:
+      id: result-error
+    timeout: 20000
+- assertVisible:
+    id: result-retry
+- tapOn:
+    id: result-retake

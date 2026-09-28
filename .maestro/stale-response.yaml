@@ -1,0 +1,39 @@
+appId: dev.artinus.assignment.ocr
+---
+- launchApp:
+    permissions:
+      camera: deny
+- extendedWaitUntil:
+    visible:
+      id: fixture-capture
+    timeout: 30000
+- tapOn:
+    id: scenario-late
+- tapOn:
+    id: fixture-capture
+- assertVisible:
+    id: result-processing
+- tapOn:
+    id: result-retake
+- tapOn:
+    id: scenario-empty
+- tapOn:
+    id: fixture-capture
+- extendedWaitUntil:
+    visible:
+      id: result-empty
+    timeout: 10000
+# Wait beyond the old provider's eight-second response, then ensure it did not replace the new result.
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: result-enlarge-photo
+      - tapOn:
+          id: result-close-photo
+- assertVisible:
+    id: result-empty
+- assertNotVisible:
+    id: result-text
+- tapOn:
+    id: result-retake

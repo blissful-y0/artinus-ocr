@@ -1,0 +1,29 @@
+appId: dev.artinus.assignment.ocr
+---
+- launchApp:
+    permissions:
+      camera: deny
+- extendedWaitUntil:
+    visible:
+      id: camera-permission-.*
+    timeout: 30000
+- launchApp:
+    permissions:
+      camera: allow
+- extendedWaitUntil:
+    visible:
+      id: camera-capture
+    timeout: 30000
+- tapOn:
+    id: camera-capture
+- extendedWaitUntil:
+    visible:
+      id: result-text
+    timeout: 15000
+- tapOn:
+    id: result-enlarge-photo
+- takeScreenshot: camera-result
+- tapOn:
+    id: result-close-photo
+- tapOn:
+    id: result-retake
