@@ -1,0 +1,8 @@
+.gcloudignore
+.git/
+node_modules/
+dist/
+test/
+.env
+.env.*
+README.md
