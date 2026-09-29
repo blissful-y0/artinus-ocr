@@ -18,7 +18,7 @@
 
 ## 서버 인증 계정 생성 완료
 
-전용 서비스 계정 `artinus-ocr-runtime@artinus-ocr.iam.gserviceaccount.com`을 생성했다. Cloud Run 함수에 이 계정을 연결하고 Application Default Credentials로 Document AI를 호출할 예정이다. 함수 연결은 아직 실행하지 않았다.
+전용 서비스 계정 `artinus-ocr-runtime@artinus-ocr.iam.gserviceaccount.com`을 생성했다. Cloud Run 함수에 이 계정을 연결했고 Application Default Credentials로 Document AI를 호출한다.
 
 `artinus-ocr` 프로젝트 범위에서 `roles/documentai.apiUser`를 부여했다. 프로세서 하나에만 제한한 권한은 아니다. `gcloud projects get-iam-policy`로 이 계정에 연결된 역할이 해당 역할 하나임을 확인했다. Document AI 관리자나 프로젝트 편집자 권한은 부여하지 않았다.
 
@@ -27,12 +27,21 @@
 - [Document AI IAM 역할](https://docs.cloud.google.com/document-ai/docs/access-control/iam-roles)
 - [연결된 서비스 계정으로 ADC 제공](https://docs.cloud.google.com/docs/authentication/provide-credentials-adc)
 
-## 남은 작업
+## 배포 설정
 
-- Cloud Run 함수에 생성된 서비스 계정 연결
-- 프로세서 버전 확인과 `enableImageQualityScores` 실제 응답 검증
-- 앱에서 함수를 호출하는 인증 및 호출 제한 구현
-- TypeScript 함수와 모바일 remote provider 구현·배포
-- 실제 이미지의 OCR·품질 경고·처리 시간 검증
+- 서비스: `artinus-ocr-api`, 리전 `us-central1`, Node.js 22.
+- 검증 리비전: `artinus-ocr-api-00002-np4`, 트래픽 100%.
+- 앱 API: `https://artinus-ocr-api-544173682720.us-central1.run.app/ocr`.
+- 빌드 계정: `artinus-ocr-build@artinus-ocr.iam.gserviceaccount.com`, `roles/run.builder`.
+- 512MiB, CPU 1, 최소 0 / 최대 1 인스턴스, 동시 요청 2, 함수 제한 시간 35초.
+- 애플리케이션 Bearer 코드 인증. 코드 없는 요청은 401로 거부한다.
+- 인스턴스당 60초에 OCR 시작 10건. 재시작 시 초기화되며 엄격한 비용 상한은 아니다.
+- SDK 제한 시간 25초, 앱 40초. SDK 자동 재시도는 끈다.
+- 평가코드는 서버 환경변수에만 설정하고, 앱에서는 사용자가 입력한 값을 메모리에 보관한다. Google 비밀키는 만들지 않았다.
+- 로컬 평가코드는 Git에서 제외된 `artifacts/credentials/ocr-access-code.txt`에 보관한다. 제출 시 저장소에 넣지 않고 별도로 전달한다.
 
-현재 앱의 remote provider는 설정 오류로 종료하는 상태다. 실제 OCR 호출이나 서버 배포를 완료했다고 간주하지 않는다.
+재배포: 인증된 gcloud 환경에서 `OCR_ACCESS_TOKEN_FILE=/private/code.txt bash scripts/deploy-gcp.sh`. 다른 프로젝트에 배포하려면 해당 프로젝트에 만든 프로세서 ID와 위치도 스크립트에서 바꿔야 한다.
+
+## 검증 범위
+
+실제 호출 결과와 남은 기기 검증은 [검증 기록](VALIDATION.md)에 기록한다. 프로세서의 기본 버전을 사용하며 버전은 고정하지 않았다. 따라서 향후 기본 버전 변경 시 인식 결과가 달라질 수 있다.
