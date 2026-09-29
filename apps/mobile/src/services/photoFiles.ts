@@ -18,7 +18,8 @@ export async function deletePhoto(photo: ScanPhoto) {
   );
 }
 // Expo Camera rotates pixels to the device orientation by default (skipProcessing=false).
-// Native image manipulation bounds upload size; pixels/base64 never pass through JS.
+// Native image manipulation bounds dimensions without moving pixels through JS.
+// Remote transport encodes this prepared file as base64 separately.
 export async function preparePhoto(photo: ScanPhoto): Promise<ScanPhoto> {
   let transformedUri: string | undefined;
   let context: ImageManipulatorContext | undefined;

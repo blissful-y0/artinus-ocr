@@ -15,24 +15,37 @@ import type { MockScenario } from "./src/features/scan/types";
 import { useScan } from "./src/features/scan/useScan";
 import { CameraScreen } from "./src/screens/CameraScreen";
 import { ResultScreen } from "./src/screens/ResultScreen";
+import { AccessCodeScreen } from "./src/screens/AccessCodeScreen";
 import {
   createMockOcrProvider,
   MOCK_SCENARIOS,
 } from "./src/services/mockOcrProvider";
 import { copyFixture, initializePhotoFiles } from "./src/services/photoFiles";
-import { remoteOcrProvider } from "./src/services/remoteOcrProvider";
+import { createRemoteOcrProvider } from "./src/services/remoteOcrProvider";
 
 const mockMode = process.env.EXPO_PUBLIC_OCR_MODE !== "remote";
 const fixtureEnabled =
-  mockMode && process.env.EXPO_PUBLIC_ENABLE_FIXTURE === "true";
-function Scanner() {
+  __DEV__ && process.env.EXPO_PUBLIC_ENABLE_FIXTURE === "true";
+function Scanner({
+  accessCode,
+  onChangeCode,
+}: {
+  accessCode: string;
+  onChangeCode: () => void;
+}) {
   const [scenario, setScenario] = useState<MockScenario>("success");
   const [active, setActive] = useState(AppState.currentState === "active");
   const provider = useMemo(
-    () => (mockMode ? createMockOcrProvider(scenario) : remoteOcrProvider),
-    [scenario],
+    () =>
+      mockMode
+        ? createMockOcrProvider(scenario)
+        : createRemoteOcrProvider(
+            process.env.EXPO_PUBLIC_OCR_API_URL,
+            accessCode,
+          ),
+    [scenario, accessCode],
   );
-  const scan = useScan(provider, mockMode ? 10_000 : 30_000);
+  const scan = useScan(provider, mockMode ? 10_000 : 40_000);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (next) => {
       setActive(next === "active");
@@ -62,6 +75,27 @@ function Scanner() {
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
       <StatusBar style="dark" />
+      {!mockMode && (
+        <View style={styles.remoteHeader}>
+          <Pressable
+            testID="remote-change-code"
+            accessibilityRole="button"
+            onPress={() => {
+              scan.retake();
+              onChangeCode();
+            }}
+            style={styles.changeCode}
+          >
+            <Text style={styles.fixtureText}>코드 변경</Text>
+          </Pressable>
+          <Text style={styles.remoteNotice}>
+            {scan.state.status === "error" &&
+            scan.state.error.code === "UNAUTHORIZED"
+              ? "인증에 실패했어요. 코드를 다시 입력해 주세요."
+              : "사진을 클라우드로 전송해 인식합니다."}
+          </Text>
+        </View>
+      )}
       {scan.state.status === "camera" || scan.state.status === "capturing" ? (
         <CameraScreen
           active={active}
@@ -97,20 +131,22 @@ function Scanner() {
                   </Pressable>
                 ))}
               </View>
-              {fixtureEnabled && (
-                <Pressable
-                  testID="fixture-capture"
-                  accessibilityRole="button"
-                  disabled={scan.state.status === "capturing"}
-                  onPress={captureFixture}
-                  style={styles.fixture}
-                >
-                  <Text style={styles.fixtureText}>
-                    샘플 이미지로 흐름 테스트 (카메라 검증 제외)
-                  </Text>
-                </Pressable>
-              )}
             </View>
+          )}
+          {fixtureEnabled && (
+            <Pressable
+              testID="fixture-capture"
+              accessibilityRole="button"
+              disabled={scan.state.status === "capturing"}
+              onPress={captureFixture}
+              style={styles.fixture}
+            >
+              <Text style={styles.fixtureText}>
+                {mockMode
+                  ? "샘플 이미지로 흐름 테스트 (카메라 검증 제외)"
+                  : "개발용 샘플 이미지를 서버로 전송"}
+              </Text>
+            </Pressable>
           )}
         </CameraScreen>
       ) : (
@@ -126,6 +162,7 @@ function Scanner() {
 }
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [accessCode, setAccessCode] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const initialize = () => {
     setError(false);
@@ -137,7 +174,14 @@ export default function App() {
   return (
     <SafeAreaProvider>
       {ready ? (
-        <Scanner />
+        !mockMode && accessCode === null ? (
+          <AccessCodeScreen onContinue={setAccessCode} />
+        ) : (
+          <Scanner
+            accessCode={accessCode ?? ""}
+            onChangeCode={() => setAccessCode(null)}
+          />
+        )
       ) : (
         <View style={styles.loading}>
           {error ? (
@@ -157,6 +201,15 @@ export default function App() {
 }
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#f5f7fb" },
+  remoteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 6,
+    gap: 12,
+  },
+  remoteNotice: { flex: 1, color: "#516079", fontSize: 12, lineHeight: 18 },
+  changeCode: { minHeight: 44, justifyContent: "center", paddingHorizontal: 8 },
   loading: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20 },
   mockPanel: {
     borderRadius: 12,
