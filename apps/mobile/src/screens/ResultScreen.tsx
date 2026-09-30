@@ -74,6 +74,8 @@ export function ResultScreen({
   const warnings = result ? [...new Set(result.warnings)] : [];
   const hasText = result !== null && result.text.trim().length > 0;
   const canRetry = state.status === "error" && state.error.retryable;
+  // 읽을 결과가 나온 화면에서는 재촬영이 할 일이 아니다. 주 버튼 자리를 비운다.
+  const retakeIsSecondary = canRetry || (state.status === "success" && hasText);
 
   useEffect(() => {
     setPhotoVisible(false);
@@ -92,7 +94,7 @@ export function ResultScreen({
           촬영 결과
         </Text>
         <Text style={styles.subtitle}>
-          사진과 인식한 내용을 함께 확인하세요.
+          인식한 내용을 확인하고, 필요하면 사진과 비교하세요.
         </Text>
       </View>
 
@@ -110,32 +112,6 @@ export function ResultScreen({
             </Text>
           </View>
         )}
-
-        <View style={styles.photoCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>촬영한 사진</Text>
-            <Text style={styles.photoHint}>눌러서 확대</Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="촬영한 사진 확대"
-            accessibilityHint="사진을 크게 보고 확대하거나 축소할 수 있습니다."
-            testID="result-enlarge-photo"
-            onPress={() => setPhotoVisible(true)}
-            style={({ pressed }) => [
-              styles.photoButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Image
-              source={{ uri: state.photo.uri }}
-              resizeMode="contain"
-              testID="result-photo"
-              style={styles.photo}
-              accessible={false}
-            />
-          </Pressable>
-        </View>
 
         {state.status === "processing" && (
           <View
@@ -175,9 +151,10 @@ export function ResultScreen({
           </View>
         )}
 
-        {/* The recognised text comes before the quality notes: it is what the
-            user opened the screen for. When nothing was read, the notes move
-            inside the empty card so they read as the likely cause. */}
+        {/* Reading order: the recognised text first, then the quality notes,
+            then a thumbnail of the photo. The user came here to read text, so
+            the photo is a check, not the headline. When nothing was read, the
+            notes move inside the empty card so they read as the likely cause. */}
         {state.status === "success" && hasText && (
           <View style={styles.textCard}>
             <View style={styles.textCardHeader}>
@@ -233,6 +210,26 @@ export function ResultScreen({
             <WarningList warnings={warnings} />
           </View>
         )}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="촬영한 사진 확대"
+          accessibilityHint="사진을 크게 보고 확대하거나 축소할 수 있습니다."
+          testID="result-enlarge-photo"
+          onPress={() => setPhotoVisible(true)}
+          style={({ pressed }) => [styles.photoCard, pressed && styles.pressed]}
+        >
+          <Image
+            source={{ uri: state.photo.uri }}
+            resizeMode="cover"
+            testID="result-photo"
+            style={styles.photo}
+            accessible={false}
+          />
+          <View style={styles.photoLabel}>
+            <Text style={styles.photoLabelTitle}>촬영한 사진</Text>
+            <Text style={styles.photoHint}>눌러서 확대</Text>
+          </View>
+        </Pressable>
       </ScrollView>
 
       <View style={styles.actions}>
@@ -254,13 +251,15 @@ export function ResultScreen({
           testID="result-retake"
           onPress={retake}
           style={({ pressed }) => [
-            canRetry ? styles.secondaryButton : styles.primaryButton,
+            retakeIsSecondary ? styles.secondaryButton : styles.primaryButton,
             pressed && styles.pressed,
           ]}
         >
           <Text
             style={
-              canRetry ? styles.secondaryButtonText : styles.primaryButtonText
+              retakeIsSecondary
+                ? styles.secondaryButtonText
+                : styles.primaryButtonText
             }
           >
             다시 촬영
@@ -306,20 +305,23 @@ const styles = StyleSheet.create({
   },
   mockDescription: { color: "#4B6388", fontSize: 13, lineHeight: 20 },
   photoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    overflow: "hidden",
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
     borderColor: "#E5E9E3",
   },
-  cardHeader: {
-    paddingHorizontal: 18,
-    paddingVertical: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
+  photo: {
+    width: 68,
+    height: 68,
+    borderRadius: 10,
+    backgroundColor: "#EBEEE8",
   },
+  photoLabel: { flex: 1, gap: 3 },
+  photoLabelTitle: { color: "#21372F", fontSize: 14, fontWeight: "700" },
   sectionTitle: {
     color: "#21372F",
     fontSize: 16,
@@ -327,8 +329,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   photoHint: { color: "#6B7B73", fontSize: 12 },
-  photoButton: { backgroundColor: "#EBEEE8", minHeight: 220 },
-  photo: { width: "100%", height: 236 },
   statusCard: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",

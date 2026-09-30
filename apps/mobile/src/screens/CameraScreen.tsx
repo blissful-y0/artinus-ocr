@@ -152,9 +152,17 @@ export function CameraScreen({
               }}
             />
             {!ready && <ActivityIndicator color="#fff" />}
+            {/* Corner brackets, not a crop box: the whole frame is sent for
+                recognition. They only help the user aim. */}
+            <View pointerEvents="none" style={styles.guide}>
+              <View style={[styles.corner, styles.cornerTopLeft]} />
+              <View style={[styles.corner, styles.cornerTopRight]} />
+              <View style={[styles.corner, styles.cornerBottomLeft]} />
+              <View style={[styles.corner, styles.cornerBottomRight]} />
+            </View>
             <View pointerEvents="none" style={styles.hint}>
               <Text style={styles.hintText}>
-                전체 사진의 텍스트를 인식합니다
+                글자가 이 안에 다 들어오게 맞춰 주세요
               </Text>
             </View>
           </>
@@ -249,6 +257,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 12,
+  },
+  guide: {
+    position: "absolute",
+    top: 24,
+    right: 24,
+    bottom: 64,
+    left: 24,
+  },
+  corner: {
+    position: "absolute",
+    width: 26,
+    height: 26,
+    borderColor: "#ffffffcc",
+  },
+  cornerTopLeft: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },
+  cornerTopRight: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 },
+  cornerBottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+  },
+  cornerBottomRight: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
   },
   hint: {
     position: "absolute",
