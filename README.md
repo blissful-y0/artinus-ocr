@@ -166,10 +166,35 @@ cd apps/ocr-api && npm ci && npm test              # 서버 테스트 8건
 
 ## 1. 구현한 흐름
 
+```mermaid
+flowchart TD
+    A["카메라 프리뷰<br/>CameraScreen"] -->|촬영| B["사진 준비<br/>preparePhoto"]
+    B -->|"긴 변 2400px · JPEG 0.85"| C{"OcrProvider"}
+    C -->|mock| D["mockOcrProvider<br/>시나리오 7종"]
+    C -->|remote| E["remoteOcrProvider<br/>HTTPS·크기 검증 → base64"]
+    E -->|"POST · Bearer 인증"| F["Cloud Run handler.ts<br/>인증 · 입력 검증 · 호출 제한"]
+    F --> G["Document AI<br/>OCR + 이미지 품질 분석"]
+    G --> H["quality.ts<br/>결함 → 경고 5종"]
+    H -->|"text · warnings"| E
+    D --> I["결과 화면<br/>ResultScreen"]
+    E --> I
+    I -->|재촬영| A
+    I -->|"재시도 · 같은 사진"| C
 ```
-카메라 프리뷰 → 촬영 → 네이티브 리사이즈·JPEG 변환 → Cloud Run 함수
-  → Document AI OCR + 이미지 품질 분석 → 결과 화면(사진 + 인식 텍스트 + 품질 경고)
-  → 사용자 확인 · 사진 확대 · 재시도 · 재촬영
+
+상태는 다섯 가지 판별 유니온입니다. 사진 없는 결과 화면 같은 불가능한 조합이 타입에서 막힙니다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> camera
+    camera --> capturing: 촬영
+    capturing --> processing: 사진 준비 완료
+    capturing --> camera: 준비 실패
+    processing --> success: 인식 성공
+    processing --> error: 실패 또는 타임아웃
+    success --> camera: 재촬영
+    error --> camera: 재촬영
+    error --> processing: 재시도 가능한 오류만
 ```
 
 | 화면 | 하는 일 |
@@ -178,9 +203,35 @@ cd apps/ocr-api && npm ci && npm test              # 서버 테스트 8건
 | 카메라 | 프리뷰, 촬영, 조명(토치), 권한 거부·카메라 열기 실패 복구 |
 | 결과 | 촬영 사진, 처리 중·성공·실패 상태, 인식 텍스트, 품질 경고, 사진 확대(1~3배), 재시도·재촬영 |
 
-상태는 `camera → capturing → processing → success | error` 다섯 가지 판별 유니온입니다. 사진 없는 결과 화면 같은 불가능한 조합이 타입에서 막힙니다.
 
 **범위 밖**: 텍스트 수정·복사(과제에서 불필요로 명시), 실시간 프레임 OCR, 촬영 기록 저장, 자동 이미지 보정.
+
+### 서버 API 계약
+
+앱과 Cloud Run 함수 사이의 계약입니다. 자세한 내용은 [서버 README](apps/ocr-api/README.md)에 있습니다.
+
+```http
+POST /ocr
+Authorization: Bearer <평가용 접근 코드>
+Content-Type: application/json
+
+{ "requestId": "...", "imageBase64": "...", "mimeType": "image/jpeg" }
+```
+
+```json
+200 { "requestId": "...", "text": "...", "warnings": ["LOW_LIGHT"], "source": "remote" }
+4xx { "error": { "code": "UNAUTHORIZED", "message": "...", "retryable": false } }
+```
+
+| 상태 | 뜻 |
+| --- | --- |
+| 401 | 접근 코드 불일치 |
+| 413 · 415 · 400 | 크기 초과, JPEG 아님, 형식 오류 |
+| 429 | 호출 제한 초과 |
+| 504 | Document AI 제한 시간 초과 |
+| 502 · 500 | 업스트림 실패, 서버 설정 문제 |
+
+앱은 응답을 그대로 믿지 않습니다. 요청 ID 일치, 경고 코드 유효성, `source` 값을 검증하고, 서버가 `retryable: true`라고 답해도 `UNAUTHORIZED`·`INVALID_IMAGE`·`CONFIGURATION`은 재시도 불가로 덮어씁니다.
 
 ### 코드 구조
 
@@ -414,7 +465,7 @@ Claude Code를 오케스트레이터로 두고 작업을 나눴습니다. Codex�
 
 ## 문서
 
-- [구조도](docs/architecture.html) — 화면·상태·서버 흐름을 그린 인터랙티브 다이어그램. 내려받아 브라우저에서 열면 됩니다
+- [상세 구조도](docs/architecture.html) — 노드마다 실제 파일·라인 번호가 붙은 인터랙티브 다이어그램. 내려받아 브라우저에서 엽니다. 개요는 위 [1장](#1-구현한-흐름)의 mermaid 다이어그램으로 충분합니다
 - [구현 스펙](docs/SPEC.md) — 확정한 결정과 API 계약
 - [기술 조사](docs/RESEARCH.md) — 라이브러리·서비스 비교
 - [검증 기록](docs/VALIDATION.md) — 실행 방법, 날짜별 검증 결과와 한계
