@@ -10,12 +10,12 @@
 | `feat/app-foundation` | Expo 프로젝트 설정, 의존성 잠금, 최소 실행 화면, 공통 타입 |
 | `feat/camera-capture` | 카메라 권한·촬영·토치, 사진 변환과 임시 파일 처리 |
 | `feat/result-screen` | 결과·오류·품질 경고 화면, 사진 확대 |
-| `feat/mock-ocr-flow` | 모의 OCR 제공자, 요청 취소·재시도·타임아웃, 앱 흐름 연결 |
+| `feat/mock-ocr-flow` | 모의 OCR 프로바이더, 요청 취소·재시도·타임아웃, 앱 흐름 연결 |
 | `test/e2e-maestro` | Maestro E2E, 실행 방법, 검증 기록 |
-| `feat/ocr-api` | Cloud Run 중계 함수, 인증·입력 검증·호출 제한, Document AI 호출 |
-| `feat/remote-ocr` | 앱의 원격 제공자, 접근 코드 입력 화면 |
+| `feat/ocr-api` | Cloud Run 프록시 서버, 인증·입력 검증·호출 제한, Document AI 호출 |
+| `feat/remote-ocr` | 앱의 원격 프로바이더, 접근 코드 입력 화면 |
 | `test/live-verification` | 실제 Google OCR 호출 검증, 배포 한계 기록 |
-| `test/unit-boundaries` | 비동기 경계 단위 테스트, 결과 화면 정리 |
+| `test/unit-boundaries` | 취소·타임아웃·재시도 단위 테스트, 결과 화면 정리 |
 | `docs/evaluator-guide` | 심사자용 설치 안내, 평가항목에 맞춘 README 재구성 |
 
 ## 커밋 규칙
