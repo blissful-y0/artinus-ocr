@@ -1,0 +1,22 @@
+{
+  "name": "artinus-ocr-api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "gcp-build": "npm run build",
+    "start": "functions-framework --target=ocr",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.cjs"
+  },
+  "dependencies": {
+    "@google-cloud/documentai": "10.1.1",
+    "@google-cloud/functions-framework": "5.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.6",
+    "typescript": "6.0.3"
+  }
+}
