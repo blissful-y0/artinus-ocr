@@ -448,7 +448,7 @@ Claude Code Fable 5.1 / Opus 5.5를 오케스트레이터로 두고 작업을 �
 
 ## 문서
 
-- [상세 구조도](docs/architecture.html) — 노드마다 실제 파일·라인 번호가 붙은 인터랙티브 다이어그램. 내려받아 브라우저에서 엽니다. 개요는 위 [1장](#1-구현한-흐름)의 mermaid 다이어그램으로 충분합니다
+- [상세 구조도](docs/architecture.html) 
 - [구현 스펙](docs/SPEC.md) — 확정한 결정과 API 규격
 - [기술 조사](docs/RESEARCH.md) — 라이브러리·서비스 비교
 - [검증 기록](docs/VALIDATION.md) — 실행 방법, 날짜별 검증 결과와 한계
