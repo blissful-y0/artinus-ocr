@@ -3,6 +3,8 @@ node_modules/
 .env
 .env.*
 !.env.example
+# 모바일 앱 설정은 비밀값이 없고 그대로 쓰면 되므로 추적합니다.
+!apps/mobile/.env
 *.log
 .expo/
 apps/mobile/android/

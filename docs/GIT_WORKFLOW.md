@@ -28,4 +28,4 @@
 
 ## 커밋하지 않는 것
 
-`.env`, 자격증명, `node_modules`, Expo가 생성하는 네이티브 프로젝트(`android/`, `ios/`), 빌드·테스트 산출물은 커밋하지 않습니다. `.env.example`과 의존성 잠금 파일은 포함합니다.
+`.env`, 자격증명, `node_modules`, Expo가 생성하는 네이티브 프로젝트(`android/`, `ios/`), 빌드·테스트 산출물은 커밋하지 않습니다. 서버의 `.env.example`과 의존성 잠금 파일, 비밀값이 없는 `apps/mobile/.env`는 포함합니다.
