@@ -1,4 +1,4 @@
-# OCR 중계 함수
+# OCR 프록시 서버
 
 TypeScript Cloud Run 함수 `ocr`는 JPEG 사진을 Google Document AI로 전달하고 인식문과 품질 경고를 반환합니다. Google API 키나 서비스 계정 키 파일은 쓰지 않습니다. 배포된 함수에 연결한 `artinus-ocr-runtime@artinus-ocr.iam.gserviceaccount.com`의 [Application Default Credentials](https://docs.cloud.google.com/docs/authentication/application-default-credentials)를 씁니다.
 
@@ -95,4 +95,4 @@ OCR_ACCESS_TOKEN_FILE=/비공개/경로/접근코드파일 ./scripts/deploy-gcp.
 
 메모리 제한은 인스턴스 전체에서 60초 동안 OCR 시작 10회, 진행 중 OCR 2회입니다. 잘못된 인증·입력과 한도로 거절한 요청은 OCR을 호출하지 않습니다. 이 수치는 분산된 영구 한도가 아니며 인스턴스 재시작·새 리비전 배포 시 초기화됩니다. 최대 인스턴스 3도 엄밀한 과금 상한을 보장하지 않습니다.
 
-7MiB 검사는 함수의 `rawBody`와 `Content-Length`를 씁니다. [Functions Framework 파서](https://github.com/GoogleCloudPlatform/functions-framework-nodejs/blob/main/src/server.ts)는 함수 호출 전에 본문을 파싱하고 자체 제한으로 1024mb를 쓰므로 이 검사는 파싱 전 메모리 사용을 7MiB로 제한하지 않습니다. 프레임워크가 먼저 거절한 잘못된 JSON 등은 함수의 오류 응답 계약을 거치지 않습니다. 공개 서비스의 엄격한 유입 용량 제한·분산 호출 제한은 별도 앞단이 필요합니다.
+7MiB 검사는 함수의 `rawBody`와 `Content-Length`를 씁니다. [Functions Framework 파서](https://github.com/GoogleCloudPlatform/functions-framework-nodejs/blob/main/src/server.ts)는 함수 호출 전에 본문을 파싱하고 자체 제한으로 1024mb를 쓰므로 이 검사는 파싱 전 메모리 사용을 7MiB로 제한하지 않습니다. 프레임워크가 먼저 거절한 잘못된 JSON 등은 함수가 정한 오류 응답 형식을 거치지 않습니다. 공개 서비스의 엄격한 유입 용량 제한·분산 호출 제한은 별도 앞단이 필요합니다.
