@@ -385,7 +385,9 @@ Document AI Enterprise Document OCR은 `enableImageQualityScores` 옵션으로 d
 
 **검증한 기기**: iPhone 17 Pro 실기기(iOS 27.2, Expo Go), iPhone 17 Pro / iOS 26.2 시뮬레이터, Android API 36 에뮬레이터(Pixel 7, arm64).
 
-실기기에서는 프리뷰가 끊기지 않는 것, 촬영에서 실제 Google OCR 응답까지 오는 것, 기울여 찍은 글자도 읽히는 것을 확인했습니다. 지연 시간·메모리·발열은 눈으로 본 것이지 수치로 재지 않았습니다. Expo Go로 띄웠으므로 `app.json`의 네이티브 설정과 릴리스 번들 성능은 이 검증에 포함되지 않습니다.
+실기기에서 확인한 것은 프리뷰가 끊기지 않는 것, 촬영에서 실제 Google OCR 응답까지 오는 것, 기울여 찍은 글자도 읽히는 것, 일부러 어둡게·흔들어 찍었을 때 해당 경고가 뜨는 것, 비행기 모드에서 오류 화면과 다시 시도 버튼이 나오는 것, 처리 중 재촬영해도 이전 결과가 섞이지 않는 것입니다. 연속 촬영에서 버벅임이나 두드러진 발열도 없었습니다.
+
+지연 시간·메모리·발열은 직접 써 보며 확인한 것이지 계측하지 않았습니다. 품질 경고도 뜨는 것만 봤고 어느 밝기부터 뜨는지, 오탐이 얼마나 되는지는 재지 않았습니다. Expo Go로 띄웠으므로 `app.json`의 네이티브 설정과 릴리스 번들 성능은 이 검증에 포함되지 않습니다.
 
 ---
 
@@ -415,7 +417,7 @@ Document AI Enterprise Document OCR은 `enableImageQualityScores` 옵션으로 d
 | Android Debug 빌드 | 성공 |
 | Android 에뮬레이터 E2E | mock 3흐름 + 실제 카메라 촬영 + 실제 서버 remote 흐름 통과 |
 | 실제 Google OCR 호출 | 텍스트 인식 성공, 1회 측정 1,804ms, 품질 경고 전달 확인 |
-| iPhone 17 Pro 실기기 (Expo Go) | 프리뷰·촬영·실제 OCR·기울어진 텍스트 인식 확인 |
+| iPhone 17 Pro 실기기 (Expo Go) | 프리뷰·촬영·실제 OCR, 기울어진 글자, 저조도·흐림 경고, 비행기 모드 오류, 처리 중 재촬영 확인 |
 | Android 실기기 프리뷰·메모리·발열 | 미검증. 검증 가능한 기기 없음 |
 
 ### 검증하지 못한 것
