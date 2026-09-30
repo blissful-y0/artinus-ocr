@@ -320,6 +320,7 @@ Document AI의 품질 결함 정보를 confidence 0.5 이상일 때 경고로 �
 
 ## 문서
 
+- [구조도](docs/architecture.html) — 화면·상태·서버 흐름을 그린 인터랙티브 다이어그램. 내려받아 브라우저에서 열면 됩니다
 - [구현 스펙](docs/SPEC.md) — 확정한 결정과 API 계약
 - [기술 조사](docs/RESEARCH.md) — 라이브러리·서비스 비교
 - [검증 기록](docs/VALIDATION.md) — 실행 방법, 날짜별 검증 결과와 한계
