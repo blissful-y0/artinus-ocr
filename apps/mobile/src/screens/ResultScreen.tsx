@@ -1,23 +1,16 @@
 import { useEffect, useState } from "react";
-import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  type LayoutChangeEvent,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-import type {
-  QualityWarning,
-  ResultScreenProps,
-  ScanPhoto,
-} from "../features/scan/types";
+import type { QualityWarning, ResultScreenProps } from "../features/scan/types";
+import { PhotoViewer } from "./PhotoViewer";
 
 const WARNING_COPY: Record<QualityWarning, { title: string; detail: string }> =
   {
@@ -43,147 +36,29 @@ const WARNING_COPY: Record<QualityWarning, { title: string; detail: string }> =
     },
   };
 
-function PhotoViewer({
-  photo,
-  onClose,
-}: {
-  photo: ScanPhoto;
-  onClose: () => void;
-}) {
-  const [zoom, setZoom] = useState(1);
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
-
-  const photoRatio =
-    photo.width > 0 && photo.height > 0 ? photo.width / photo.height : 3 / 4;
-  const fittedWidth = Math.min(viewport.width, viewport.height * photoRatio);
-  const fittedHeight = fittedWidth / photoRatio;
-  const imageWidth = fittedWidth * zoom;
-  const imageHeight = fittedHeight * zoom;
-
-  function updateViewport(event: LayoutChangeEvent) {
-    const { width, height } = event.nativeEvent.layout;
-    setViewport({ width: Math.max(1, width), height: Math.max(1, height) });
-  }
-
+function WarningList({ warnings }: { warnings: QualityWarning[] }) {
   return (
-    <Modal
-      visible
-      animationType="fade"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <SafeAreaProvider style={styles.viewer}>
-        <SafeAreaView
-          style={styles.viewer}
-          testID="result-photo-modal"
-          accessibilityViewIsModal
+    <>
+      {warnings.map((warning) => (
+        <View
+          style={styles.warningRow}
+          key={warning}
+          testID={`result-warning-${warning}`}
         >
-          <StatusBar style="light" />
-          <View style={styles.viewerHeader}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="확대한 사진 닫기"
-              testID="result-close-photo"
-              onPress={onClose}
-              style={({ pressed }) => [
-                styles.closeButton,
-                pressed && styles.viewerButtonPressed,
-              ]}
-            >
-              <Text style={styles.closeText}>닫기</Text>
-            </Pressable>
-            <View style={styles.viewerHeading}>
-              <Text style={styles.viewerTitle}>촬영한 사진</Text>
-              <Text style={styles.viewerHint}>
-                {zoom > 1
-                  ? "드래그해서 사진을 둘러보세요"
-                  : "확대해서 글자를 확인하세요"}
-              </Text>
-            </View>
+          <View style={styles.warningMarker} accessible={false}>
+            <Text style={styles.warningMarkerText}>!</Text>
           </View>
-
-          <View style={styles.viewerViewport} onLayout={updateViewport}>
-            {viewport.width > 0 && viewport.height > 0 && (
-              <ScrollView
-                horizontal
-                bounces={false}
-                automaticallyAdjustContentInsets={false}
-                contentInsetAdjustmentBehavior="never"
-                scrollEnabled={zoom > 1}
-                showsHorizontalScrollIndicator={zoom > 1}
-                indicatorStyle="white"
-                style={styles.horizontalPhotoScroll}
-                contentContainerStyle={{ minWidth: viewport.width }}
-              >
-                <ScrollView
-                  bounces={false}
-                  automaticallyAdjustContentInsets={false}
-                  contentInsetAdjustmentBehavior="never"
-                  nestedScrollEnabled
-                  scrollEnabled={zoom > 1}
-                  showsVerticalScrollIndicator={zoom > 1}
-                  indicatorStyle="white"
-                  style={{
-                    width: Math.max(viewport.width, imageWidth),
-                    height: viewport.height,
-                  }}
-                  contentContainerStyle={[
-                    styles.verticalPhotoContent,
-                    { minHeight: viewport.height },
-                  ]}
-                >
-                  <Image
-                    key={`${photo.uri}:${imageWidth}:${imageHeight}`}
-                    source={{ uri: photo.uri }}
-                    testID="result-photo-expanded"
-                    resizeMode="contain"
-                    accessible
-                    accessibilityLabel={`촬영한 사진, ${zoom}배 확대`}
-                    style={{ width: imageWidth, height: imageHeight }}
-                  />
-                </ScrollView>
-              </ScrollView>
-            )}
-          </View>
-
-          <View style={styles.zoomToolbar}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="사진 축소"
-              accessibilityState={{ disabled: zoom === 1 }}
-              disabled={zoom === 1}
-              testID="result-zoom-out"
-              onPress={() => setZoom((value) => Math.max(1, value - 1))}
-              style={({ pressed }) => [
-                styles.zoomButton,
-                zoom === 1 && styles.viewerButtonDisabled,
-                pressed && styles.viewerButtonPressed,
-              ]}
-            >
-              <Text style={styles.zoomButtonText}>−</Text>
-            </Pressable>
-            <Text style={styles.zoomValue} accessibilityLiveRegion="polite">
-              {zoom}×
+          <View style={styles.warningText}>
+            <Text style={styles.warningTitle}>
+              {WARNING_COPY[warning].title}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="사진 확대"
-              accessibilityState={{ disabled: zoom === 3 }}
-              disabled={zoom === 3}
-              testID="result-zoom-in"
-              onPress={() => setZoom((value) => Math.min(3, value + 1))}
-              style={({ pressed }) => [
-                styles.zoomButton,
-                zoom === 3 && styles.viewerButtonDisabled,
-                pressed && styles.viewerButtonPressed,
-              ]}
-            >
-              <Text style={styles.zoomButtonText}>＋</Text>
-            </Pressable>
+            <Text style={styles.warningDetail}>
+              {WARNING_COPY[warning].detail}
+            </Text>
           </View>
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </Modal>
+        </View>
+      ))}
+    </>
   );
 }
 
@@ -300,7 +175,52 @@ export function ResultScreen({
           </View>
         )}
 
-        {state.status === "success" && warnings.length > 0 && (
+        {/* The recognised text comes before the quality notes: it is what the
+            user opened the screen for. When nothing was read, the notes move
+            inside the empty card so they read as the likely cause. */}
+        {state.status === "success" && hasText && (
+          <View style={styles.textCard}>
+            <View style={styles.textCardHeader}>
+              <Text style={styles.sectionTitle} accessibilityRole="header">
+                인식한 텍스트
+              </Text>
+              <View style={styles.completeBadge}>
+                <Text style={styles.completeText}>완료</Text>
+              </View>
+            </View>
+            <Text
+              style={styles.resultText}
+              testID="result-text"
+              accessibilityLiveRegion="polite"
+            >
+              {state.result.text}
+            </Text>
+          </View>
+        )}
+
+        {state.status === "success" && !hasText && (
+          <View
+            style={styles.emptyCard}
+            testID="result-empty"
+            accessibilityLiveRegion="polite"
+          >
+            <Text style={[styles.statusTitle, styles.leftAlign]}>
+              인식한 텍스트가 없어요
+            </Text>
+            <Text style={[styles.statusDescription, styles.leftAlign]}>
+              {warnings.length > 0
+                ? "아래 항목이 원인일 수 있어요. 맞춘 뒤 다시 촬영해 주세요."
+                : "글자가 잘 보이도록 거리와 초점을 조절한 뒤 다시 촬영해 주세요."}
+            </Text>
+            {warnings.length > 0 && (
+              <View style={styles.emptyWarnings}>
+                <WarningList warnings={warnings} />
+              </View>
+            )}
+          </View>
+        )}
+
+        {state.status === "success" && hasText && warnings.length > 0 && (
           <View style={styles.warningCard} testID="result-warnings">
             <Text style={styles.warningHeading} accessibilityRole="header">
               사진 품질을 확인해 주세요
@@ -308,64 +228,11 @@ export function ResultScreen({
             <Text style={styles.warningIntro}>
               {isMock
                 ? "아래 경고는 화면 확인용 예시입니다."
-                : "감지된 징후를 확인하고, 인식한 내용을 사진과 비교해 주세요."}
+                : "인식한 내용을 사진과 비교하고, 빠진 글자가 있으면 다시 촬영해 주세요."}
             </Text>
-            {warnings.map((warning) => (
-              <View
-                style={styles.warningRow}
-                key={warning}
-                testID={`result-warning-${warning}`}
-              >
-                <View style={styles.warningMarker} accessible={false}>
-                  <Text style={styles.warningMarkerText}>!</Text>
-                </View>
-                <View style={styles.warningText}>
-                  <Text style={styles.warningTitle}>
-                    {WARNING_COPY[warning].title}
-                  </Text>
-                  <Text style={styles.warningDetail}>
-                    {WARNING_COPY[warning].detail}
-                  </Text>
-                </View>
-              </View>
-            ))}
+            <WarningList warnings={warnings} />
           </View>
         )}
-
-        {state.status === "success" &&
-          (hasText ? (
-            <View style={styles.textCard}>
-              <View style={styles.textCardHeader}>
-                <Text style={styles.sectionTitle} accessibilityRole="header">
-                  인식한 텍스트
-                </Text>
-                <View style={styles.completeBadge}>
-                  <Text style={styles.completeText}>완료</Text>
-                </View>
-              </View>
-              <Text
-                style={styles.resultText}
-                testID="result-text"
-                accessibilityLiveRegion="polite"
-              >
-                {state.result.text}
-              </Text>
-            </View>
-          ) : (
-            <View
-              style={styles.statusCard}
-              testID="result-empty"
-              accessibilityLiveRegion="polite"
-            >
-              <Text style={styles.emptySymbol} accessible={false}>
-                Aa
-              </Text>
-              <Text style={styles.statusTitle}>인식한 텍스트가 없어요</Text>
-              <Text style={styles.statusDescription}>
-                글자가 잘 보이도록 거리와 초점을 조절한 뒤 다시 촬영해 주세요.
-              </Text>
-            </View>
-          ))}
       </ScrollView>
 
       <View style={styles.actions}>
@@ -578,11 +445,20 @@ const styles = StyleSheet.create({
   },
   completeText: { color: "#36704C", fontSize: 11, fontWeight: "700" },
   resultText: { color: "#263C33", fontSize: 16, lineHeight: 27 },
-  emptySymbol: {
-    color: "#A9B6AD",
-    fontSize: 31,
-    fontWeight: "600",
-    letterSpacing: -1,
+  leftAlign: { textAlign: "left" },
+  emptyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#E5E9E3",
+    gap: 10,
+  },
+  emptyWarnings: {
+    marginTop: 4,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#EDF0EA",
   },
   actions: {
     backgroundColor: "#F7F8F5",
@@ -626,67 +502,4 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   pressed: { opacity: 0.72 },
-  viewer: { flex: 1, minHeight: 0, minWidth: 0, backgroundColor: "#101A17" },
-  viewerHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    flexShrink: 0,
-  },
-  viewerHeading: { flex: 1 },
-  viewerTitle: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
-  viewerHint: { color: "#B3C1B9", fontSize: 12, lineHeight: 19, marginTop: 6 },
-  closeButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-    minHeight: 48,
-    backgroundColor: "#27372F",
-    borderRadius: 12,
-    justifyContent: "center",
-  },
-  closeText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  viewerViewport: { flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" },
-  horizontalPhotoScroll: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  verticalPhotoContent: { alignItems: "center", justifyContent: "center" },
-  zoomToolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 24,
-    paddingTop: 18,
-    paddingBottom: 20,
-    flexShrink: 0,
-  },
-  zoomButton: {
-    width: 52,
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#27372F",
-    borderRadius: 14,
-  },
-  zoomButtonText: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: "600",
-  },
-  zoomValue: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    minWidth: 32,
-    textAlign: "center",
-  },
-  viewerButtonDisabled: { opacity: 0.35 },
-  viewerButtonPressed: { opacity: 0.7 },
 });

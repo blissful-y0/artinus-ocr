@@ -10,12 +10,16 @@ appId: dev.artinus.assignment.ocr
 - launchApp:
     permissions:
       camera: allow
+# The capture button renders before onCameraReady fires and ignores taps until then.
+# Waiting for the enabled state keeps this flow from tapping into the warm-up window.
 - extendedWaitUntil:
     visible:
       id: camera-capture
+      enabled: true
     timeout: 30000
 - tapOn:
     id: camera-capture
+    enabled: true
 - extendedWaitUntil:
     visible:
       id: result-text

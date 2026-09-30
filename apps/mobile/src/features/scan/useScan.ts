@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deletePhoto, preparePhoto } from "../../services/photoFiles";
+import { CAPTURE_MESSAGES, SCAN_MESSAGES } from "./messages";
 import {
   OcrError,
   type OcrProvider,
@@ -73,13 +74,7 @@ export function useScan(provider: OcrProvider, timeoutMs: number) {
           work,
           new Promise<never>((_, reject) => {
             timeout = setTimeout(() => {
-              reject(
-                new OcrError(
-                  "TIMEOUT",
-                  "응답이 늦어지고 있어요. 같은 사진으로 다시 시도해 주세요.",
-                  true,
-                ),
-              );
+              reject(new OcrError("TIMEOUT", SCAN_MESSAGES.timeout, true));
               controller.abort();
             }, timeoutMs);
           }),
@@ -94,11 +89,7 @@ export function useScan(provider: OcrProvider, timeoutMs: number) {
             error:
               error instanceof OcrError
                 ? error
-                : new OcrError(
-                    "NETWORK",
-                    "연결을 확인하고 다시 시도해 주세요.",
-                    true,
-                  ),
+                : new OcrError("NETWORK", SCAN_MESSAGES.unknownFailure, true),
           });
         }
       } finally {
@@ -126,7 +117,7 @@ export function useScan(provider: OcrProvider, timeoutMs: number) {
         if (mounted.current && token === generation.current)
           update({
             status: "camera",
-            captureError: "사진을 준비하지 못했어요. 다시 촬영해 주세요.",
+            captureError: CAPTURE_MESSAGES.photoPrepareFailed,
           });
       }
     },

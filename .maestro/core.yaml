@@ -14,6 +14,9 @@ appId: dev.artinus.assignment.ocr
       id: fixture-capture
     timeout: 30000
 - tapOn:
+    id: mock-panel-toggle
+    optional: true
+- tapOn:
     id: scenario-success
 - tapOn:
     id: fixture-capture

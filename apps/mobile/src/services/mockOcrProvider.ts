@@ -1,4 +1,5 @@
 import { OcrError } from "../features/scan/types";
+import { MOCK_MESSAGES } from "../features/scan/messages";
 import type {
   MockScenario,
   OcrProvider,
@@ -35,7 +36,7 @@ function waitForResponse(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const cancelled = () =>
-      new OcrError("CANCELLED", "인식 요청이 취소되었습니다.", false);
+      new OcrError("CANCELLED", MOCK_MESSAGES.cancelled, false);
     if (!ignoreAbort && signal.aborted) {
       reject(cancelled());
       return;
@@ -71,20 +72,12 @@ export function createMockOcrProvider(scenario: MockScenario): OcrProvider {
       if (scenario === "timeout") {
         // The app times mock requests out at ten seconds. This also fails predictably
         // if a caller does not apply its own timeout.
-        throw new OcrError(
-          "TIMEOUT",
-          "인식 시간이 초과되었습니다. 다시 시도해 주세요.",
-          true,
-        );
+        throw new OcrError("TIMEOUT", MOCK_MESSAGES.timeout, true);
       }
 
       if (scenario === "error" && !failedPhotoUris.has(photo.uri)) {
         failedPhotoUris.add(photo.uri);
-        throw new OcrError(
-          "NETWORK",
-          "일시적으로 연결할 수 없습니다. 같은 사진으로 다시 시도해 주세요.",
-          true,
-        );
+        throw new OcrError("NETWORK", MOCK_MESSAGES.transientFailure, true);
       }
 
       return {

@@ -6,6 +6,10 @@ import {
 } from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
 import type { ScanPhoto } from "../features/scan/types";
+import {
+  MAX_PHOTO_EDGE_PX,
+  UPLOAD_JPEG_QUALITY,
+} from "../features/scan/constants";
 
 const directory = `${FileSystem.cacheDirectory}artinus-scans/`;
 export async function initializePhotoFiles() {
@@ -26,15 +30,17 @@ export async function preparePhoto(photo: ScanPhoto): Promise<ScanPhoto> {
   let rendered: ImageRef | undefined;
   try {
     context = ImageManipulator.manipulate(photo.uri);
-    if (Math.max(photo.width, photo.height) > 2400) {
+    if (Math.max(photo.width, photo.height) > MAX_PHOTO_EDGE_PX) {
       context.resize(
-        photo.width >= photo.height ? { width: 2400 } : { height: 2400 },
+        photo.width >= photo.height
+          ? { width: MAX_PHOTO_EDGE_PX }
+          : { height: MAX_PHOTO_EDGE_PX },
       );
     }
     rendered = await context.renderAsync();
     const saved = await rendered.saveAsync({
       format: SaveFormat.JPEG,
-      compress: 0.85,
+      compress: UPLOAD_JPEG_QUALITY,
     });
     transformedUri = saved.uri;
     const uri = `${directory}${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;

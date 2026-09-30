@@ -6,8 +6,9 @@ import {
   type OcrResult,
   type QualityWarning,
 } from "../features/scan/types";
+import { MAX_UPLOAD_BYTES } from "../features/scan/constants";
+import { REMOTE_MESSAGES } from "../features/scan/messages";
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const WARNING_CODES = new Set<QualityWarning>([
   "LOW_LIGHT",
   "POSSIBLE_BLUR",
@@ -30,7 +31,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 function checkCancellation(signal: AbortSignal) {
   if (signal.aborted)
-    throw new OcrError("CANCELLED", "요청을 취소했어요.", false);
+    throw new OcrError("CANCELLED", REMOTE_MESSAGES.cancelled, false);
 }
 function validateResult(value: unknown, requestId: string): OcrResult {
   if (
@@ -47,11 +48,7 @@ function validateResult(value: unknown, requestId: string): OcrResult {
         WARNING_CODES.has(warning as QualityWarning),
     )
   ) {
-    throw new OcrError(
-      "SERVER",
-      "서버에서 올바른 인식 결과를 받지 못했어요. 다시 시도해 주세요.",
-      true,
-    );
+    throw new OcrError("SERVER", REMOTE_MESSAGES.invalidResult, true);
   }
   return {
     requestId,
@@ -63,23 +60,11 @@ function validateResult(value: unknown, requestId: string): OcrResult {
 function responseError(status: number, value: unknown): OcrError {
   // HTTP authentication errors must always lead to changing the code, never blind retry.
   if (status === 401 || status === 403)
-    return new OcrError(
-      "UNAUTHORIZED",
-      "평가용 액세스 코드를 확인하고 다시 입력해 주세요.",
-      false,
-    );
+    return new OcrError("UNAUTHORIZED", REMOTE_MESSAGES.unauthorized, false);
   if (status === 413 || status === 415 || status === 400)
-    return new OcrError(
-      "INVALID_IMAGE",
-      "처리할 수 없는 사진입니다. 용량을 줄이거나 다시 촬영해 주세요.",
-      false,
-    );
+    return new OcrError("INVALID_IMAGE", REMOTE_MESSAGES.rejectedImage, false);
   if (status === 429)
-    return new OcrError(
-      "RATE_LIMITED",
-      "요청이 많아 잠시 기다린 뒤 다시 시도해 주세요.",
-      true,
-    );
+    return new OcrError("RATE_LIMITED", REMOTE_MESSAGES.rateLimited, true);
   if (isObject(value) && isObject(value.error)) {
     const error = value.error;
     if (
@@ -106,8 +91,8 @@ function responseError(status: number, value: unknown): OcrError {
   return new OcrError(
     status === 504 ? "TIMEOUT" : "SERVER",
     status === 504
-      ? "인식 응답이 늦어지고 있어요. 다시 시도해 주세요."
-      : "인식 서버에 문제가 있어요. 잠시 후 다시 시도해 주세요.",
+      ? REMOTE_MESSAGES.gatewayTimeout
+      : REMOTE_MESSAGES.serverFailure,
     status >= 500,
   );
 }
@@ -135,23 +120,23 @@ export function createRemoteOcrProvider(
       } catch {
         throw new OcrError(
           "CONFIGURATION",
-          "OCR 서버 주소가 설정되지 않았어요. 앱 설정을 확인해 주세요.",
+          REMOTE_MESSAGES.missingEndpoint,
           false,
         );
       }
       if (!/^[\x21-\x7e]{1,256}$/.test(accessCode))
         throw new OcrError(
           "UNAUTHORIZED",
-          "평가용 액세스 코드를 다시 입력해 주세요.",
+          REMOTE_MESSAGES.malformedAccessCode,
           false,
         );
       let imageBase64: string;
       try {
         const file = new File(photo.uri);
-        if (!file.exists || file.size <= 0 || file.size > MAX_FILE_BYTES)
+        if (!file.exists || file.size <= 0 || file.size > MAX_UPLOAD_BYTES)
           throw new OcrError(
             "INVALID_IMAGE",
-            "사진은 5MB 이하로 전송할 수 있어요. 다시 촬영해 주세요.",
+            REMOTE_MESSAGES.oversizeFile,
             false,
           );
         // Async native file read; do not use base64Sync on the JS thread.
@@ -159,11 +144,11 @@ export function createRemoteOcrProvider(
         checkCancellation(signal);
         if (
           imageBase64.length === 0 ||
-          imageBase64.length > Math.ceil(MAX_FILE_BYTES / 3) * 4
+          imageBase64.length > Math.ceil(MAX_UPLOAD_BYTES / 3) * 4
         )
           throw new OcrError(
             "INVALID_IMAGE",
-            "사진 용량이 너무 커요. 다시 촬영해 주세요.",
+            REMOTE_MESSAGES.oversizePayload,
             false,
           );
       } catch (error) {
@@ -171,7 +156,7 @@ export function createRemoteOcrProvider(
         if (error instanceof OcrError) throw error;
         throw new OcrError(
           "INVALID_IMAGE",
-          "사진 파일을 읽지 못했어요. 다시 촬영해 주세요.",
+          REMOTE_MESSAGES.unreadableFile,
           false,
         );
       }
@@ -200,7 +185,7 @@ export function createRemoteOcrProvider(
           if (!response.ok) throw responseError(response.status, undefined);
           throw new OcrError(
             "SERVER",
-            "서버 응답을 읽지 못했어요. 다시 시도해 주세요.",
+            REMOTE_MESSAGES.unreadableResponse,
             true,
           );
         }
@@ -210,11 +195,7 @@ export function createRemoteOcrProvider(
       } catch (error) {
         checkCancellation(signal);
         if (error instanceof OcrError) throw error;
-        throw new OcrError(
-          "NETWORK",
-          "네트워크 연결을 확인하고 다시 시도해 주세요.",
-          true,
-        );
+        throw new OcrError("NETWORK", REMOTE_MESSAGES.networkFailure, true);
       }
     },
   };

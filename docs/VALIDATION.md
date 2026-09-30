@@ -1,8 +1,22 @@
 # 검증 기록
 
-2026-09-28. 실제 OCR 서비스 연결 전 모의 응답 단계의 기록이다.
+시간 순으로 쌓는 기록이다. 각 절의 날짜가 그 시점의 검증 범위를 뜻하며, 뒤 절이 앞 절의 미검증 항목을 덮어쓴다. 최신 상태는 [검증 요약](#검증-요약)에서 본다.
 
-## 자동 검사
+## 검증 요약
+
+작성 기준일 2026-09-30.
+
+| 항목 | 상태 |
+| --- | --- |
+| 모바일 단위 테스트 (useScan 8, remoteOcrProvider 12) | 통과 |
+| 서버 HTTP·SDK 경계 테스트 8건 | 통과 |
+| TypeScript·포맷·Expo 의존성 검사 | 통과 |
+| iOS 시뮬레이터 E2E (mock 3흐름 + remote 1흐름) | 통과 |
+| Android 네이티브 빌드·에뮬레이터 E2E 5흐름 (실제 카메라·실제 OCR 포함) | 통과 |
+| iPhone 17 Pro 실기기 | 아래 2026-09-30 절 참고 |
+| Android 실기기 | 미검증. 검증 가능한 기기 없음 |
+
+## 자동 검사 — 2026-09-28
 
 - `cd apps/mobile && npm run typecheck`: 통과.
 - `npm run check`: Expo 호환 의존성 검사 통과.
@@ -11,7 +25,18 @@
 - `npx expo-doctor`: 21개 검사 통과(기반 구현 에이전트 실행).
 - 모의 제공자: strict 컴파일 및 일회성 가상 타이머 검사로 7종 시나리오, 취소, 재시도, 늦은 응답을 확인했다. 별도 단위 테스트 파일은 추가하지 않았다.
 
-## E2E 실행 방법
+## 테스트 실행 방법
+
+### 단위 테스트
+
+```sh
+cd apps/mobile && npm test        # useScan 8건, remoteOcrProvider 12건
+cd apps/ocr-api && npm test       # HTTP·SDK 경계 8건
+```
+
+`useScan` 테스트는 E2E로 만들기 비싼 비동기 경계를 고정한다. 취소한 요청의 늦은 응답 무시, 제공자가 파일을 읽는 동안의 삭제 지연, 같은 사진 재시도, 재시도 불가 오류, 가짜 타이머로 재현한 타임아웃과 abort 신호. `remoteOcrProvider` 테스트는 응답 계약을 고정한다. 요청 ID 불일치·알 수 없는 경고 코드 거부, 401의 재시도 불가 처리, 서버가 재시도 가능하다고 해도 `INVALID_IMAGE`는 재시도하지 않는 규칙, https 아닌 주소·형식이 틀린 코드·5MB 초과 파일을 전송 전에 막는 동작.
+
+### E2E
 
 Maestro CLI와 실행 중인 에뮬레이터/시뮬레이터가 필요하다. development build를 설치하고 Metro에 연결한 뒤 실행한다. Expo 개발 메뉴가 떠 있으면 닫고 앱의 카메라 화면으로 돌아간다.
 
@@ -22,15 +47,15 @@ EXPO_PUBLIC_ENABLE_FIXTURE=true npm start
 maestro --device <device-id> test .maestro/core.yaml
 maestro --device <device-id> test .maestro/recovery.yaml
 maestro --device <device-id> test .maestro/stale-response.yaml
+maestro --device <device-id> test .maestro/android-camera.yaml
 ```
 
 - `core`: 샘플 사진 → 결과 → 확대 → 빈 결과 → 품질 경고.
 - `recovery`: 일시적 실패 → 같은 사진 재시도 → 성공, 타임아웃 → 재촬영.
 - `stale-response`: 8초 뒤 응답하며 취소를 무시하는 이전 요청 도중 재촬영 → 새 빈 결과가 이전 성공 응답으로 교체되지 않는지 확인.
+- `android-camera`: 권한 거부 화면 → 허용 → 실제 카메라로 촬영 → 결과 → 확대·닫기·재촬영. Android 전용이며 카메라 에뮬레이션이 켜진 AVD가 필요하다.
 
-샘플 E2E는 카메라 권한을 거부한 상태에서 실행해 UI·비동기 흐름을 분리 검증한다. Android의 실제 카메라 경로는 별도 `android-camera.yaml`에 작성했으나 아직 실행 검증하지 못했다.
-
-샘플 사진은 카메라 하드웨어를 사용하지 않는다. 이 결과는 실제 촬영이나 OCR 인식 정확도의 증거가 아니다.
+앞의 세 흐름은 카메라 권한을 거부한 상태로 샘플 이미지를 써서 UI·비동기 흐름만 분리 검증한다. 카메라 하드웨어 경로의 증거는 `android-camera`와 실기기 수동 검증이 담당한다.
 
 ## 기기별 수동 검증 기준
 
@@ -96,3 +121,44 @@ API 34 새 AVD에서도 성공·사진 확대/닫기·빈 결과·품질 경고 
 iPhone 17 Pro / iOS 26.2 시뮬레이터에서 `.maestro/remote.yaml` 전체 통과. 잘못된 코드의 인증 오류·재시도 버튼 숨김 → 코드 변경 → 실제 Google OCR 텍스트 확인 → 사진 확대·닫기 → 재촬영을 검증했다. 품질 경고 두 개로 텍스트가 스크롤 아래에 놓이는 경우가 있어, 초기 테스트의 단순 visible 대기를 scrollUntilVisible로 수정했다.
 
 산출물: `artifacts/live-ocr/smoke.json`, `artifacts/live-ocr/maestro-final/.maestro/tests/2026-09-29_200617/` (Git 제외). 성공 화면에서 인식문과 경고를 직접 확인했다.
+
+## Android 검증 완료 — 2026-09-30
+
+이전 기록의 "ADB 무응답으로 Android E2E 미완료"를 해소했다. 제출 직전 점검에서 이 맥에 Xcode 27.0·JDK 17.0.13·Android SDK·gcloud가 남아 있지 않은 것을 확인하고, 도구를 새로 설치해 처음부터 다시 빌드·검증했다.
+
+### 검증 환경
+
+- macOS 26.5(Darwin 25.5.0), Node.js 22.22.0.
+- JDK 17.0.20.1 (Homebrew openjdk@17), Android SDK cmdline-tools, platform-tools 37.0.1, NDK 27.1.12297006, cmake 3.22.1.
+- AVD `artinus_api36`: Android 16 (API 36), google_apis, arm64-v8a, Pixel 7, 후면 카메라 `virtualscene`.
+- Maestro 2.x, Expo 57.0.25 / React Native 0.86.3.
+
+### 결과
+
+| 흐름 | 결과 |
+| --- | --- |
+| `./gradlew assembleDebug` | 성공. `app-debug.apk` 생성·설치 |
+| `core` | 통과. 성공 결과·사진 1배/2배 확대·닫기·빈 결과·품질 경고 |
+| `recovery` | 통과. 일시적 실패 → 같은 사진 재시도 성공 → 타임아웃 → 재촬영 |
+| `stale-response` | 통과. 처리 중 재촬영, 이전 늦은 응답이 새 결과를 덮지 않음 |
+| `android-camera` | 통과. 권한 거부 화면 → 허용 → **에뮬레이터 실제 카메라 촬영** → 결과 → 확대·닫기·재촬영 |
+| `remote` (실제 Google Document AI) | 통과. 잘못된 코드 401·재시도 버튼 숨김 → 코드 변경 → 실제 인식문 표시 → 확대·닫기·재촬영 |
+
+`android-camera`는 이번에 처음 실행했다. 앞선 기록에서는 작성만 하고 실행하지 못한 흐름이다.
+
+### 이번에 고친 것
+
+- `android-camera.yaml`이 `camera-capture`가 보이자마자 탭해 실패했다. 버튼은 `onCameraReady` 전에도 렌더되지만 탭을 무시하므로, 탭이 카메라 준비 구간에 떨어지면 아무 일도 일어나지 않는다. 선택자에 `enabled: true`를 넣어 준비될 때까지 기다리도록 고쳤다. 앱 코드 결함이 아니라 테스트의 경합이었다.
+- 빌드는 cmake가 임시 파일을 쓰지 못해 한 번 실패했다. 실행 환경의 샌드박스 제한이었고 앱·Gradle 설정 문제가 아니었다.
+
+### 남은 Android 공백
+
+에뮬레이터 검증은 Android 실기기의 프리뷰 반응·메모리·발열을 대신하지 못한다. 검증 가능한 Android 실기기가 없어 이 항목은 미검증으로 남긴다. `virtualscene` 카메라는 실제 렌즈·자동초점·저조도 특성과 다르다.
+
+에뮬레이터가 실행 중 한 번 ADB 연결을 잃어 흐름이 중단됐고, 재연결 후 같은 흐름이 통과했다. 앞선 기록의 ADB 무응답과 같은 계열로 보이며 앱 코드가 원인이라는 근거는 없다.
+
+### 결과 화면 순서 변경 이후
+
+위 Android E2E 5흐름은 결과 화면 순서를 바꾸기 전에 통과한 기록이다. 이후 인식 텍스트를 품질 경고보다 위로 올리고, 텍스트가 없을 때는 경고를 원인으로 묶어 한 카드에 넣었다. 개발용 모의 시나리오 패널은 기본으로 접어 두고 `mock-panel-toggle`로 펼치도록 바꿨으며, mock 흐름 세 개에 이 토글 단계를 추가했다.
+
+변경 이후 다시 확인한 것은 TypeScript·포맷·단위 테스트 28건과 Android 에뮬레이터에서의 실행 화면이다. E2E 5흐름 전체 재실행은 하지 않았다.
