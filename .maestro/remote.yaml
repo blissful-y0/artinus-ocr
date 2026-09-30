@@ -1,0 +1,58 @@
+appId: dev.artinus.assignment.ocr
+---
+- launchApp:
+    stopApp: true
+    permissions:
+      camera: deny
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: ocr-access-code
+    timeout: 30000
+- tapOn:
+    id: ocr-access-code
+- inputText: wrong-evaluation-code
+- tapOn:
+    id: ocr-connect
+- tapOn:
+    id: fixture-capture
+- extendedWaitUntil:
+    visible: ".*코드를 다시 입력해 주세요.*"
+    timeout: 45000
+- assertNotVisible:
+    id: result-retry
+- tapOn:
+    id: remote-change-code
+- tapOn:
+    id: ocr-access-code
+- inputText: ${MAESTRO_OCR_ACCESS_CODE}
+- tapOn:
+    id: ocr-connect
+- tapOn:
+    id: fixture-capture
+- scrollUntilVisible:
+    element:
+      id: result-text
+    direction: DOWN
+    timeout: 45000
+- assertVisible: ".*ARTINUS.*"
+- takeScreenshot: remote-result
+- scrollUntilVisible:
+    element:
+      id: result-enlarge-photo
+    direction: UP
+- tapOn:
+    id: result-enlarge-photo
+- assertVisible:
+    id: result-photo-modal
+- tapOn:
+    id: result-close-photo
+- tapOn:
+    id: result-retake
+- assertVisible:
+    id: fixture-capture

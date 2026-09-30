@@ -75,3 +75,24 @@ API 34 새 AVD에서도 성공·사진 확대/닫기·빈 결과·품질 경고 
 ## 기능별 커밋 검증
 
 기능별 이력을 정리한 뒤 기반(`c63ceab`), 카메라(`f47c92a`), 결과 화면(`868ac6a`), OCR 연결(`caf348a`)의 Git 스냅샷을 각각 임시 디렉터리에 추출해 `tsc --noEmit` 통과를 확인했다. 기존에 설치된 동일한 의존성을 연결해 검사했으며, 커밋마다 새로 설치하거나 네이티브 빌드·E2E를 반복한 것은 아니다. 최종 포맷 검사와 Expo 의존성 검사도 통과했다.
+
+## 실제 Google OCR 연결 — 2026-09-29
+
+- Cloud Run `artinus-ocr-api-00002-np4` 배포 및 실제 Document AI 호출 성공.
+- 공개 URL의 `/health` 200, 인증 없는 `/ocr` 401 확인. 실제 OCR POST는 리다이렉트 없이 200 응답.
+- 저장소의 합성 샘플을 JPEG로 변환해 전송했다. `ARTINUS OCR`, `Camera flow test`, `September 2026`, `SAMPLE IMAGE`, `Mock results are fixtures.` 문장을 실제 엔진이 반환했다. 이미지에 적힌 Mock 문장은 입력 자체의 내용이며 서버 응답을 모의 생성한 것이 아니다.
+- 단일 HTTP 측정 1,804ms. 일반 지연 시간·콜드 스타트 성능을 대표하지 않는다.
+- 같은 응답의 `GLARE`, `CROPPED` 품질 경고 전달 확인. 합성 샘플에도 경고가 나왔으므로 이를 실제 결함 검출 정확도의 증거로 보지 않는다. 저조도·블러·기울어짐은 촬영 샘플로 추가 검증해야 한다.
+- 서버 build 및 HTTP/SDK 경계 테스트 8/8 통과. 초기 배포에서 `retry: null`과 `maxRetries: 0` 조합이 실제 SDK 내부 TypeError를 일으켰다. `maxRetries`를 제거하고 실제 `google-gax CallSettings.merge`를 사용하는 회귀 테스트를 추가했다.
+- 모바일 TypeScript·포맷 검사 통과, remote 모드 iOS·Android Hermes 번들 생성 통과. 이번 변경으로 네이티브 빌드를 다시 실행하지 않았으며 기존 Debug 빌드에서 새 JS를 실행했다.
+- 로컬 HTTP 모의 서버로 인증 오류 → 코드 변경 → 성공 → 확대 → 재촬영 E2E를 먼저 통과했다. 이는 Google 연결 검증과 별개다.
+
+원격 E2E는 `EXPO_PUBLIC_OCR_MODE=remote`, `EXPO_PUBLIC_ENABLE_FIXTURE=true`, 배포 URL로 Metro를 시작하고 `MAESTRO_OCR_ACCESS_CODE`를 환경변수로 전달해 `maestro --device <id> test .maestro/remote.yaml`을 실행한다. 코드 값은 저장소·명령 인자에 넣지 않는다. Maestro 산출물에도 코드가 포함될 수 있으므로 Git에서 제외된 로컬 디렉터리에 보관하고 공유 전에 제거한다.
+
+실제 카메라 하드웨어는 이번 원격 E2E에 사용하지 않는다. iPhone 17 Pro 실기기 프리뷰·촬영·메모리·발열, Android 전체 E2E와 실제 OCR 호출, 나쁜 촬영 입력의 경고 정확도는 미검증이다.
+
+### 실제 서버 iOS E2E 결과
+
+iPhone 17 Pro / iOS 26.2 시뮬레이터에서 `.maestro/remote.yaml` 전체 통과. 잘못된 코드의 인증 오류·재시도 버튼 숨김 → 코드 변경 → 실제 Google OCR 텍스트 확인 → 사진 확대·닫기 → 재촬영을 검증했다. 품질 경고 두 개로 텍스트가 스크롤 아래에 놓이는 경우가 있어, 초기 테스트의 단순 visible 대기를 scrollUntilVisible로 수정했다.
+
+산출물: `artifacts/live-ocr/smoke.json`, `artifacts/live-ocr/maestro-final/.maestro/tests/2026-09-29_200617/` (Git 제외). 성공 화면에서 인식문과 경고를 직접 확인했다.
