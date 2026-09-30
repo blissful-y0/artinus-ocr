@@ -63,7 +63,7 @@ gcloud run deploy "$task_service" --project="$task_project" --region="$task_regi
   --source="$task_root/apps/ocr-api" --function=ocr --base-image=nodejs22 \
   --build-service-account="projects/${task_project}/serviceAccounts/${task_builder}" \
   --service-account="$task_runtime" --env-vars-file="$task_env_file" \
-  --memory=512Mi --cpu=1 --concurrency=2 --min=0 --max=1 --max-instances=1 \
+  --memory=512Mi --cpu=1 --concurrency=2 --min=0 --max=3 --max-instances=3 \
   --timeout=35s --no-invoker-iam-check --quiet
 
 gcloud run services describe "$task_service" --project="$task_project" \
