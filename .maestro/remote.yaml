@@ -45,7 +45,7 @@ appId: dev.artinus.assignment.ocr
 - scrollUntilVisible:
     element:
       id: result-enlarge-photo
-    direction: UP
+    direction: DOWN
 - tapOn:
     id: result-enlarge-photo
 - assertVisible:

@@ -24,6 +24,10 @@ appId: dev.artinus.assignment.ocr
     visible:
       id: result-text
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: result-enlarge-photo
+    direction: DOWN
 - tapOn:
     id: result-enlarge-photo
 - takeScreenshot: camera-result
