@@ -12,6 +12,11 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { MockScenario } from "./src/features/scan/types";
+import {
+  MOCK_TIMEOUT_MS,
+  REMOTE_TIMEOUT_MS,
+} from "./src/features/scan/constants";
+import { CAPTURE_MESSAGES } from "./src/features/scan/messages";
 import { useScan } from "./src/features/scan/useScan";
 import { CameraScreen } from "./src/screens/CameraScreen";
 import { ResultScreen } from "./src/screens/ResultScreen";
@@ -34,6 +39,7 @@ function Scanner({
   onChangeCode: () => void;
 }) {
   const [scenario, setScenario] = useState<MockScenario>("success");
+  const [scenariosOpen, setScenariosOpen] = useState(false);
   const [active, setActive] = useState(AppState.currentState === "active");
   const provider = useMemo(
     () =>
@@ -45,7 +51,10 @@ function Scanner({
           ),
     [scenario, accessCode],
   );
-  const scan = useScan(provider, mockMode ? 10_000 : 40_000);
+  const scan = useScan(
+    provider,
+    mockMode ? MOCK_TIMEOUT_MS : REMOTE_TIMEOUT_MS,
+  );
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (next) => {
       setActive(next === "active");
@@ -107,10 +116,23 @@ function Scanner({
         >
           {mockMode && (
             <View style={styles.mockPanel}>
-              <Text testID="mock-mode-notice" style={styles.mockTitle}>
-                개발용 모의 OCR · 실제 인식 결과가 아닙니다
-              </Text>
-              <View style={styles.scenarios}>
+              {/* Collapsed by default so the preview keeps the screen. The
+                  notice itself stays visible: mock results must never look real. */}
+              <Pressable
+                testID="mock-panel-toggle"
+                accessibilityRole="button"
+                accessibilityState={{ expanded: scenariosOpen }}
+                onPress={() => setScenariosOpen((open) => !open)}
+                style={styles.mockHeader}
+              >
+                <Text testID="mock-mode-notice" style={styles.mockTitle}>
+                  개발용 모의 OCR · 실제 인식 결과가 아닙니다
+                </Text>
+                <Text style={styles.mockToggle}>
+                  {scenariosOpen ? "접기" : "시나리오"}
+                </Text>
+              </Pressable>
+              <View style={[styles.scenarios, !scenariosOpen && styles.hidden]}>
                 {MOCK_SCENARIOS.map((item) => (
                   <Pressable
                     key={item.value}
@@ -186,7 +208,7 @@ export default function App() {
         <View style={styles.loading}>
           {error ? (
             <>
-              <Text>임시 사진 저장 공간을 준비하지 못했어요.</Text>
+              <Text>{CAPTURE_MESSAGES.storageSetupFailed}</Text>
               <Pressable accessibilityRole="button" onPress={initialize}>
                 <Text style={styles.fixtureText}>다시 시도</Text>
               </Pressable>
@@ -217,7 +239,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff3d4",
     gap: 8,
   },
-  mockTitle: { color: "#72531a", fontSize: 11, fontWeight: "600" },
+  mockHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    minHeight: 32,
+  },
+  mockTitle: {
+    color: "#72531a",
+    fontSize: 11,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  mockToggle: { color: "#8a6410", fontSize: 11, fontWeight: "700" },
+  hidden: { display: "none" },
   scenarios: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   scenario: {
     paddingHorizontal: 12,

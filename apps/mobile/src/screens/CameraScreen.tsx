@@ -10,6 +10,8 @@ import {
   View,
 } from "react-native";
 import type { ScanPhoto } from "../features/scan/types";
+import { CAPTURE_JPEG_QUALITY } from "../features/scan/constants";
+import { CAPTURE_MESSAGES } from "../features/scan/messages";
 
 type Props = {
   active: boolean;
@@ -36,7 +38,7 @@ export function CameraScreen({
     const subscription = AppState.addEventListener("change", (next) => {
       if (next === "active")
         void getPermission().catch(() =>
-          setCameraError("카메라 권한을 확인하지 못했어요."),
+          setCameraError(CAPTURE_MESSAGES.permissionCheckFailed),
         );
     });
     return () => subscription.remove();
@@ -59,7 +61,7 @@ export function CameraScreen({
     try {
       await requestPermission();
     } catch {
-      setCameraError("카메라 권한을 요청하지 못했어요. 다시 시도해 주세요.");
+      setCameraError(CAPTURE_MESSAGES.permissionRequestFailed);
     } finally {
       setPermissionBusy(false);
     }
@@ -68,14 +70,14 @@ export function CameraScreen({
     try {
       await Linking.openSettings();
     } catch {
-      setCameraError("설정 앱에서 카메라 권한을 허용해 주세요.");
+      setCameraError(CAPTURE_MESSAGES.openSettingsFailed);
     }
   };
   const capture = () => {
     if (!ready || capturing || !active || !camera.current) return;
     onCapture(async () => {
       const photo = await camera.current?.takePictureAsync({
-        quality: 0.9,
+        quality: CAPTURE_JPEG_QUALITY,
         skipProcessing: false,
         exif: false,
       });
@@ -146,9 +148,7 @@ export function CameraScreen({
               onCameraReady={() => setReady(true)}
               onMountError={() => {
                 setReady(false);
-                setCameraError(
-                  "카메라를 열지 못했어요. 다른 앱의 카메라 사용을 종료하고 다시 시도해 주세요.",
-                );
+                setCameraError(CAPTURE_MESSAGES.cameraMountFailed);
               }}
             />
             {!ready && <ActivityIndicator color="#fff" />}
