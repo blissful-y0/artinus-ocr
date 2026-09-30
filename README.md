@@ -16,34 +16,118 @@
 
 ---
 
-## 실행
+## 실행 방법
 
-Node.js가 필요합니다. Android는 JDK 17과 Android SDK(platform-tools, `platforms;android-36`, `ndk;27.1.12297006`, cmake), iOS는 macOS·Xcode·CocoaPods가 필요합니다. Xcode는 대상 기기의 iOS 버전을 지원하는 버전이어야 합니다.
+Expo를 씁니다. 다만 `expo-camera`가 네이티브 모듈이라 Expo Go로는 못 돌리고, **직접 빌드해서 설치하는 development build**를 씁니다. 그래서 iOS는 Xcode, Android는 Android SDK가 필요합니다.
+
+`android/`, `ios/` 폴더는 저장소에 없습니다. `npm run ios`나 `npm run android`를 치면 Expo가 그때 만들어 줍니다. 따로 할 일은 없고 **첫 실행만 10~20분쯤 걸립니다.**
+
+### 0. 공통 — Node.js
+
+Node.js 22 이상이 필요합니다. 확인:
 
 ```sh
-cd apps/mobile
-npm ci
-cp .env.example .env
-npm run typecheck
-npm test
-npm run android     # macOS에서 iOS는 npm run ios
+node -v     # v22.x 이상
 ```
 
-Expo development build를 사용합니다. 네이티브 프로젝트(`android/`, `ios/`)는 저장소에 두지 않고 Expo 설정에서 생성합니다. 실기기 실행은 `npx expo run:ios --device`입니다.
+### 1-A. iOS로 보려면 (macOS 필요)
 
-### 실제 OCR로 보려면
+준비물 세 가지입니다.
 
-`.env.example`은 remote 모드와 배포된 서버 주소를 기본값으로 둡니다. **제출 메일에 함께 보낸 평가용 접근 코드**를 앱 첫 화면에 입력하면 실제 Google OCR로 동작합니다. 코드는 앱 실행 중 메모리에만 있고 어디에도 저장하지 않습니다.
+```sh
+# 1) Xcode — App Store에서 설치 후 한 번 실행해 약관 동의
+xcode-select --install
 
-평가용 서버는 최대 인스턴스 1, 인스턴스당 60초에 OCR 10건, 동시 2건으로 제한합니다. 여러 명이 겹치면 429가 날 수 있고, 잠시 뒤 다시 시도하면 됩니다.
+# 2) CocoaPods
+sudo gem install cocoapods
+#    또는 brew install cocoapods
 
-### 코드 없이 흐름만 보려면
+# 3) iOS 시뮬레이터 — Xcode > Settings > Components 에서 하나 받기
+```
 
-`.env`에서 `EXPO_PUBLIC_OCR_MODE=mock`으로 바꾸고 Metro를 다시 시작합니다. 네트워크도 자격증명도 필요 없이 성공·빈 결과·품질 경고·실패 후 재시도·느린 응답·타임아웃·취소 후 늦은 응답을 골라 볼 수 있습니다. 이때 표시되는 텍스트와 경고는 고정 데이터이며, 화면에 항상 "실제 인식 결과가 아닙니다" 안내가 함께 뜹니다.
+실행:
 
-카메라가 없는 시뮬레이터에서는 `EXPO_PUBLIC_ENABLE_FIXTURE=true`로 샘플 이미지 버튼을 켤 수 있습니다. 개발 빌드에서만 나타나며, remote 모드에서는 이 버튼도 실제 서버로 사진을 보냅니다.
+```sh
+git clone <이 저장소 주소>
+cd artinus-ocr/apps/mobile
+npm ci
+cp .env.example .env
+npm run ios
+```
 
-`EXPO_PUBLIC_*`는 앱 번들에 그대로 들어가는 공개 설정입니다. API 키·서비스 계정 키·평가용 코드는 넣지 않습니다.
+시뮬레이터가 뜨고 앱이 설치됩니다. 실기기에 넣으려면 `npx expo run:ios --device`를 쓰고, 이때 **Xcode 버전이 기기의 iOS 버전을 지원해야 합니다.** 기기 iOS가 Xcode보다 최신이면 설치가 안 됩니다.
+
+### 1-B. Android로 보려면 (macOS·Windows·Linux)
+
+준비물:
+
+```sh
+# 1) JDK 17
+brew install openjdk@17          # macOS
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+
+# 2) Android SDK — Android Studio를 설치하면 같이 깔립니다.
+#    Android Studio 없이 하려면:
+brew install --cask android-commandlinetools
+export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+
+# 3) SDK 구성요소 — NDK가 빠지면 빌드가 cmake 오류로 실패합니다
+sdkmanager --install "platform-tools" "emulator" \
+  "platforms;android-36" "ndk;27.1.12297006" \
+  "system-images;android-36;google_apis;arm64-v8a"
+
+# 4) 에뮬레이터 만들고 켜기 (카메라 흐름까지 보려면 -camera-back 옵션을 주세요)
+avdmanager create avd -n artinus -k "system-images;android-36;google_apis;arm64-v8a" -d pixel_7
+$ANDROID_HOME/emulator/emulator -avd artinus -camera-back virtualscene
+```
+
+실행:
+
+```sh
+cd artinus-ocr/apps/mobile
+npm ci
+cp .env.example .env
+npm run android
+```
+
+### 2. 실제 OCR 보기 — 접근 코드 입력
+
+`.env.example`은 이미 배포된 서버 주소를 기본값으로 갖고 있습니다. 앱을 켜면 첫 화면에서 코드를 물어봅니다. **제출 메일에 같이 보낸 평가용 접근 코드**를 넣으면 실제 Google OCR로 동작합니다.
+
+코드는 앱이 켜져 있는 동안 메모리에만 있고 파일이나 저장소에 남지 않습니다.
+
+서버는 최대 인스턴스 3, 인스턴스당 동시 2건, 60초에 10건까지 받습니다. 인스턴스는 요청이 올 때만 떠서 쉬는 동안 비용이 안 듭니다. 한도를 넘기면 429를 돌려주니 잠깐 뒤 다시 찍으면 됩니다.
+
+### 3. 코드 없이 화면만 보고 싶다면
+
+`.env`에서 한 줄만 바꾸고 Metro를 다시 켜면 됩니다.
+
+```sh
+EXPO_PUBLIC_OCR_MODE=mock
+```
+
+네트워크도 코드도 필요 없이 성공 · 텍스트 없음 · 품질 경고 · 실패 후 재시도 · 느린 응답 · 타임아웃 · 취소 후 늦은 응답을 골라 볼 수 있습니다. 이때 나오는 텍스트와 경고는 미리 정해둔 값이고, 화면에 "실제 인식 결과가 아닙니다"라고 항상 띄웁니다.
+
+시뮬레이터에는 카메라가 없습니다. `EXPO_PUBLIC_ENABLE_FIXTURE=true`를 켜면 샘플 이미지로 촬영을 대신하는 버튼이 생깁니다. 이 버튼은 개발 빌드에서만 보이고, remote 모드에서는 샘플 이미지도 실제 서버로 보냅니다.
+
+### 4. 테스트 돌려보기
+
+```sh
+cd apps/mobile  && npm run typecheck && npm test   # 타입 검사 + 단위 테스트 20건
+cd apps/ocr-api && npm ci && npm test              # 서버 테스트 8건
+```
+
+### 막히면
+
+| 증상 | 원인과 해결 |
+| --- | --- |
+| 첫 빌드가 끝나지 않음 | 정상입니다. 네이티브 프로젝트 생성 + 컴파일이라 10~20분 걸립니다 |
+| Android 빌드가 cmake에서 실패 | NDK가 없습니다. `sdkmanager --install "ndk;27.1.12297006"` |
+| 실기기에 설치가 안 됨 (iOS) | Xcode가 기기의 iOS 버전보다 낮습니다. Xcode를 올리거나 시뮬레이터로 보세요 |
+| 앱이 켜지는데 계속 401 | 접근 코드가 틀렸습니다. 화면 위 "코드 변경"으로 다시 넣으세요 |
+| 촬영 버튼이 안 눌림 | 카메라가 준비 중입니다. 프리뷰가 뜨면 활성화됩니다 |
+
+`EXPO_PUBLIC_*`로 시작하는 값은 앱 안에 그대로 들어갑니다. API 키나 서비스 계정 키, 접근 코드를 여기에 넣지 않습니다.
 
 ---
 
@@ -57,7 +141,7 @@ Expo development build를 사용합니다. 네이티브 프로젝트(`android/`,
 
 | 화면 | 하는 일 |
 | --- | --- |
-| 접근 코드 | remote 모드 첫 화면. 코드를 메모리에만 보관하고, 인증 실패 시 코드 변경 경로 제공 |
+| 접근 코드 | remote 모드 첫 화면. 코드를 메모리에만 보관. 인증 실패 시 코드 변경 경로 제공 |
 | 카메라 | 프리뷰, 촬영, 조명(토치), 권한 거부·카메라 열기 실패 복구 |
 | 결과 | 촬영 사진, 처리 중·성공·실패 상태, 인식 텍스트, 품질 경고, 사진 확대(1~3배), 재시도·재촬영 |
 
@@ -107,7 +191,7 @@ Document AI의 품질 결함 정보를 confidence 0.5 이상일 때 경고로 �
 | 작은 글자 | 가까이 촬영 |
 | 잘린 내용 가능성 | 필요한 글자가 다 들어오도록 촬영 |
 
-기울어진 텍스트는 별도 감지·보정을 넣지 않았습니다. Document AI가 회전을 자체 보정하며, 앱은 원본 사진 확대 비교와 재촬영 경로로 대응합니다. Document AI의 결함 목록에 기울기 항목이 없어 경고로 만들 수단도 없습니다.
+기울어진 텍스트는 별도 감지·보정을 넣지 않았습니다. 회전은 Document AI가 자체 보정합니다. 앱은 원본 사진 확대 비교와 재촬영 경로로 대응합니다. Document AI의 결함 목록에 기울기 항목이 없어 경고로 만들 수단도 없습니다.
 
 ### 경쟁 상태
 
@@ -126,7 +210,7 @@ Document AI의 품질 결함 정보를 confidence 0.5 이상일 때 경고로 �
 | **Expo development build + Expo Camera** | 네이티브 카메라 프리뷰와 정지 이미지 촬영을 검증된 모듈로 씁니다. 네이티브 프로젝트는 설정에서 생성해 저장소를 가볍게 유지합니다 |
 | **Expo Image Manipulator / FileSystem** | 리사이즈·JPEG 인코딩·파일 읽기를 전부 네이티브에서 처리합니다. JS 스레드에서 픽셀을 다루지 않습니다 |
 | **클라우드 OCR (Google Document AI)** | 온디바이스 모델 통합·번들 크기 부담 없이, OCR과 이미지 품질 분석을 한 번의 왕복으로 같이 받습니다 |
-| **Cloud Run 중계 함수 + 서비스 계정** | 앱에 Google 자격증명을 두지 않습니다. 연결된 서비스 계정의 ADC로 호출하며, 다운로드 가능한 키 파일을 만들지 않았습니다 |
+| **Cloud Run 중계 함수 + 서비스 계정** | 앱에 Google 자격증명을 두지 않습니다. 연결된 서비스 계정의 ADC로 호출합니다. 다운로드 가능한 키 파일은 만들지 않았습니다 |
 | **OCR Provider 인터페이스 분리** | 모의 제공자와 실제 HTTP 제공자가 같은 결과 타입을 씁니다. 서버 없이 오류·취소 흐름을 검증할 수 있습니다 |
 
 ### 주요 수치
@@ -210,7 +294,7 @@ Document AI의 품질 결함 정보를 confidence 0.5 이상일 때 경고로 �
 
 ## 6. AI 활용 기록
 
-요구사항 정리, 공식 문서·라이브러리 조사, 구현 계획과 앱 코드 작성에 Codex와 Claude Code를 썼습니다. 기반·카메라, 결과 화면, 모의 OCR을 파일 범위별로 나눠 에이전트가 병렬 구현하고, 메인 에이전트가 통합·검증했습니다.
+요구사항 정리, 공식 문서·라이브러리 조사, 구현 계획과 앱 코드 작성에 Codex와 Claude Code를 썼습니다. 기반·카메라, 결과 화면, 모의 OCR을 파일 범위별로 나눠 에이전트가 병렬로 구현했고 메인 에이전트가 통합·검증했습니다.
 
 ### AI가 생성한 것을 그대로 쓴 부분
 
@@ -218,7 +302,7 @@ Document AI의 품질 결함 정보를 confidence 0.5 이상일 때 경고로 �
 
 ### 검증해서 고친 부분
 
-- **실제 호출에서만 드러난 SDK 버그.** 코드 리뷰와 타입 검사를 통과한 `{ timeout, retry: null, maxRetries: 0 }` 옵션이 배포 후 첫 실호출에서 `google-gax` 내부 TypeError를 냈습니다. 두 옵션이 같이 오면 안 되는 조합이었습니다. `maxRetries`를 제거하고, 모의 객체가 아니라 실제 `google-gax CallSettings.merge`를 호출하는 회귀 테스트를 추가했습니다. 실제 서비스에 붙여보기 전에는 잡히지 않는 종류였습니다.
+- **실제 호출에서만 드러난 SDK 버그.** 코드 리뷰와 타입 검사를 통과한 `{ timeout, retry: null, maxRetries: 0 }` 옵션이 배포 후 첫 실호출에서 `google-gax` 내부 TypeError를 냈습니다. 두 옵션이 같이 오면 안 되는 조합이었습니다. `maxRetries`를 제거했습니다. 회귀 테스트는 모의 객체 대신 실제 `google-gax CallSettings.merge`를 호출합니다. 실제 서비스에 붙여보기 전에는 잡히지 않는 종류였습니다.
 - **E2E가 닿지 못한 취소 경로.** 취소한 요청의 늦은 응답 처리, 요청 세대 무효화, 제공자가 파일을 읽는 동안의 삭제 지연은 E2E로 확인하기 비싸고 불안정했습니다. `useScan` 8건과 `remoteOcrProvider` 12건을 직접 추가해 이 경계를 고정했습니다.
 - **실행된 적 없던 테스트.** `android-camera.yaml`은 작성만 되고 한 번도 돌지 않은 흐름이었습니다. 실행해 보니 카메라 준비 전에 촬영 버튼을 눌러 탭이 무시되는 경합이 있었고, 선택자에 `enabled: true`를 넣어 고쳤습니다.
 - **화면 결함.** 확대 이미지 치수, 모달 안전 영역, 개발 버튼과 닫기 버튼 겹침을 E2E 스크린샷을 보고 고쳤습니다. 품질 경고가 두 개일 때 인식 텍스트가 스크롤 아래로 밀리는 것도 이때 발견했습니다.
